@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaludDigital · Plataforma Hospitalaria Integral</title>
+  <meta name="description" content="Sistema de Arquitectura Empresarial TOGAF y FHIR R4 para clínicas y hospitales integrados.">
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div id="modal-container" class="modal-card" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <!-- Quick Patient Search Modal (Ctrl + K) -->
+  <div id="search-palette" class="search-palette" onclick="if(event.target===this)closePalette()">
+    <div class="search-palette-box">
+      <div class="search-palette-header">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="palette-input" type="text" placeholder="Buscar paciente por nombre, documento o ID clínico (Ej: María, 1032, SD-10482)..." autocomplete="off" oninput="handlePaletteSearch(this.value)">
+        <span class="palette-kbd">ESC</span>
+      </div>
+      <div id="palette-results" class="palette-results"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
