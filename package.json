@@ -1,20 +1,16 @@
 {
   "name": "salud-digital",
-  "version": "1.0.0",
-  "description": "SaludDigital - Plataforma Hospitalaria Integral (TOGAF & FHIR R4)",
+  "version": "1.1.0",
+  "description": "SaludDigital - Plataforma hospitalaria integral (FHIR R4)",
   "main": "server/index.js",
+  "private": true,
+  "engines": { "node": ">=18" },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node --watch server/index.js"
+    "dev": "node --watch server/index.js",
+    "test": "node --test test/api.test.js"
   },
-  "keywords": [
-    "ehr",
-    "lis",
-    "hospital",
-    "fhir",
-    "togaf",
-    "salud-digital"
-  ],
+  "keywords": ["ehr", "lis", "hospital", "fhir", "salud-digital"],
   "author": "SaludDigital Team",
   "license": "MIT",
   "dependencies": {

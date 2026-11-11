@@ -1,102 +1,69 @@
 const express = require('express');
-const router = express.Router();
 const store = require('../data/store');
+const { requireRole } = require('../middleware/auth');
 
-router.get('/', (req, res) => {
+const router = express.Router();
+
+// Indicadores agregados: no incluye datos identificables de pacientes
+router.get('/', ...requireRole('gerencia'), (req, res) => {
   const totalApts = store.data.appointments.length;
   const appApts = store.data.appointments.filter(a => a.canal === 'App SaludDigital').length;
-  const appPercent = totalApts > 0 ? Math.round((appApts / totalApts) * 100) : 42;
+  const appPercent = totalApts > 0 ? Math.round((appApts / totalApts) * 100) : 0;
 
-  const publishedLabs = store.data.labOrders.filter(l => l.est === 'Publicado' && l.tiempoProcesamientoMinutos);
-  const avgLabTime = publishedLabs.length > 0
-    ? Math.round(publishedLabs.reduce((a, b) => a + b.tiempoProcesamientoMinutos, 0) / publishedLabs.length)
-    : 38;
+  const published = store.data.labOrders.filter(l => l.est === 'Publicado' && l.tiempoProcesamientoMinutos);
+  const avgLabTime = published.length > 0
+    ? Math.round(published.reduce((a, l) => a + l.tiempoProcesamientoMinutos, 0) / published.length)
+    : null;
 
-  const criticalIncidents = store.data.auditLogs.filter(a => a.accion === 'INCIDENTE_CRITICO').length;
+  const blockedAccess = store.data.auditLogs.filter(a => a.accion === 'LOGIN_FALLIDO').length;
+  const emergencies = store.data.emergencyAccesses.length;
 
   const kpis = [
     {
-      id: "kpi-1",
-      nombre: "Tiempo promedio de atención",
-      valorActual: "22 min",
-      meta: "Reducción del 30% (Meta ≤ 25 min)",
-      cumplimiento: 88,
-      estado: "En meta",
-      tendencia: "-12% vs trimestre anterior",
-      descripcion: "Disminución lograda al eliminar la duplicidad en el registro del paciente."
+      id: 'kpi-1', nombre: 'Tiempo de entrega de laboratorio',
+      valorActual: avgLabTime !== null ? `${avgLabTime} min` : 'Sin datos',
+      meta: 'Menor a 60 min desde la orden', cumplimiento: avgLabTime !== null ? Math.min(100, Math.round((60 / Math.max(avgLabTime, 1)) * 100)) : 0,
+      estado: avgLabTime === null ? 'Sin datos' : avgLabTime <= 60 ? 'En meta' : 'Fuera de meta',
+      descripcion: 'Calculado con la hora real de solicitud y de publicación de cada orden.'
     },
     {
-      id: "kpi-2",
-      nombre: "Tiempo de entrega de laboratorio",
-      valorActual: `${avgLabTime} min`,
-      meta: "Menor a 60 min desde la orden",
-      cumplimiento: 95,
-      estado: "Excelente",
-      tendencia: "Promedio consolidado en 38 min",
-      descripcion: "El LIS publica directamente a la HCE evitando transporte físico de papeles."
-    },
-    {
-      id: "kpi-3",
-      nombre: "Citas agendadas por la App",
-      valorActual: `${appPercent}%`,
-      meta: "Alcanzar 60% en el primer año",
+      id: 'kpi-2', nombre: 'Citas agendadas por la app',
+      valorActual: `${appPercent}%`, meta: 'Alcanzar 60%',
       cumplimiento: Math.min(100, Math.round((appPercent / 60) * 100)),
-      estado: appPercent >= 50 ? "En meta" : "En progreso",
-      tendencia: `+${appPercent - 20}% desde lanzamiento`,
-      descripcion: "Autogestión por pacientes que reduce la carga operativa telefónica."
+      estado: appPercent >= 60 ? 'En meta' : 'En progreso',
+      descripcion: 'Porcentaje de citas creadas desde la app sobre el total de citas registradas.'
     },
     {
-      id: "kpi-4",
-      nombre: "Incidentes de seguridad de datos",
-      valorActual: `${criticalIncidents}`,
-      meta: "0 incidentes críticos por trimestre",
-      cumplimiento: criticalIncidents === 0 ? 100 : 40,
-      estado: criticalIncidents === 0 ? "Óptimo" : "Alerta",
-      tendencia: "0 fugas / 100% trazabilidad RBAC",
-      descripcion: "Defensa en profundidad y cumplimiento estricto de la Ley 1581 (Habeas Data)."
+      id: 'kpi-3', nombre: 'Accesos fallidos al sistema',
+      valorActual: `${blockedAccess}`, meta: 'Vigilar tendencia',
+      cumplimiento: blockedAccess === 0 ? 100 : 60,
+      estado: blockedAccess === 0 ? 'Óptimo' : 'Revisar',
+      descripcion: 'Intentos de inicio de sesión rechazados, registrados en la bitácora.'
     },
     {
-      id: "kpi-5",
-      nombre: "Satisfacción del paciente",
-      valorActual: "92%",
-      meta: "Aumentar al 90% positivo",
-      cumplimiento: 102,
-      estado: "Superado",
-      tendencia: "+14 puntos de NPS",
-      descripcion: "Medición pos-consulta en la App SaludDigital."
+      id: 'kpi-4', nombre: 'Accesos de emergencia',
+      valorActual: `${emergencies}`, meta: 'Uso excepcional y justificado',
+      cumplimiento: emergencies === 0 ? 100 : 80,
+      estado: emergencies === 0 ? 'Óptimo' : 'Revisar',
+      descripcion: 'Accesos de emergencia activados por médicos a pacientes no asignados.'
     }
   ];
 
-  // Weekly appointments data
   const semanal = [
-    { dia: "Lunes", realizadas: 78, canceladas: 6 },
-    { dia: "Martes", realizadas: 84, canceladas: 4 },
-    { dia: "Miércoles", realizadas: 82, canceladas: 5 },
-    { dia: "Jueves", realizadas: 90, canceladas: 5 },
-    { dia: "Viernes", realizadas: 88, canceladas: 3 }
+    { dia: 'Lunes', realizadas: 78, canceladas: 6 },
+    { dia: 'Martes', realizadas: 84, canceladas: 4 },
+    { dia: 'Miércoles', realizadas: 82, canceladas: 5 },
+    { dia: 'Jueves', realizadas: 90, canceladas: 5 },
+    { dia: 'Viernes', realizadas: 88, canceladas: 3 }
   ];
 
-  // Distribution by EPS
-  const epsMap = {};
-  store.data.patients.forEach(p => {
-    epsMap[p.eps] = (epsMap[p.eps] || 0) + 1;
-  });
+  const epsDistribucion = {};
+  store.data.patients.forEach(p => { epsDistribucion[p.eps] = (epsDistribucion[p.eps] || 0) + 1; });
 
-  // Financial summary
-  const financiero = {
-    recaudado: store.data.invoices.filter(i => i.est === 'Pagada').reduce((a, b) => a + b.valorTotal, 0),
-    porConfirmar: store.data.invoices.filter(i => i.est === 'Por confirmar').reduce((a, b) => a + b.valorTotal, 0),
-    vencido: store.data.invoices.filter(i => i.est === 'Vencida').reduce((a, b) => a + b.valorTotal, 0)
-  };
+  const sum = (est) => store.data.invoices.filter(i => i.est === est).reduce((a, i) => a + i.valorTotal, 0);
+  const financiero = { recaudado: sum('Pagada'), porConfirmar: sum('Por confirmar'), vencido: sum('Vencida') };
 
-  res.json({
-    kpis,
-    graficos: {
-      semanal,
-      epsDistribucion: epsMap,
-      financiero
-    }
-  });
+  res.json({ kpis, graficos: { semanal, epsDistribucion, financiero }, nota: 'La serie semanal es de referencia hasta conectar la fuente de citas por día.' });
 });
 
 module.exports = router;

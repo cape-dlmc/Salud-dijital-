@@ -1,20 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_FILE = path.join(__dirname, 'db.json');
+const config = require('../config');
+const DB_FILE = config.DB_FILE;
+const { hashPassword, isHashed } = require('../lib/security');
 
-// Initial seed data based on the SaludDigital Enterprise Architecture document
+// Datos iniciales de demostración (se guardan con contraseñas cifradas)
 const initialData = {
   users: [
-    { id: "u1", user: "admin.pena", pw: "Admin2026*", nombre: "Ricardo Peña", rol: "admin", cargo: "Administración y admisiones", ini: "RP", email: "ricardo.pena@saluddigital.com", tel: "310 440 1001" },
-    { id: "u2", user: "dr.martinez", pw: "Medico2026*", nombre: "Dr. Andrés Martínez", rol: "medico", cargo: "Médico general", especialidad: "Medicina general", regMedico: "RM-44821", ini: "AM", email: "andres.martinez@saluddigital.com" },
-    { id: "u3", user: "dra.gomez", pw: "Medico2026*", nombre: "Dra. Laura Gómez", rol: "medico", cargo: "Ginecología y endocrinología", especialidad: "Ginecología", regMedico: "RM-51290", ini: "LG", email: "laura.gomez@saluddigital.com" },
-    { id: "u4", user: "dr.restrepo", pw: "Medico2026*", nombre: "Dr. Julián Restrepo", rol: "medico", cargo: "Neumología clínica", especialidad: "Neumología", regMedico: "RM-39014", ini: "JR", email: "julian.restrepo@saluddigital.com" },
+    { id: "u1", user: "admin.pena", pw: "Admin2026*", nombre: "Ricardo Peña", rol: "admin", cargo: "Administración, Recepción y Admisiones", ini: "RP", email: "ricardo.pena@saluddigital.com", tel: "310 440 1001" },
+    { id: "u2", user: "dr.martinez", pw: "Medico2026*", nombre: "Dr. Andrés Martínez", rol: "medico", cargo: "Médico general / Atención primaria", especialidad: "Medicina general", regMedico: "RM-44821", ini: "AM", email: "andres.martinez@saluddigital.com" },
+    { id: "u3", user: "dra.gomez", pw: "Medico2026*", nombre: "Dra. Laura Gómez", rol: "especialista", cargo: "Especialista en Ginecología", especialidad: "Ginecología", regMedico: "RM-51290", ini: "LG", email: "laura.gomez@saluddigital.com" },
+    { id: "u4", user: "dr.restrepo", pw: "Medico2026*", nombre: "Dr. Julián Restrepo", rol: "especialista", cargo: "Especialista en Neumología Clínica", especialidad: "Neumología", regMedico: "RM-39014", ini: "JR", email: "julian.restrepo@saluddigital.com" },
     { id: "u5", user: "lab.ortega", pw: "Lab2026*", nombre: "Daniela Ortega", rol: "laboratorio", cargo: "Bacterióloga y Lab. Clínico", regLab: "BC-19280", ini: "DO", email: "daniela.ortega@saluddigital.com" },
     { id: "u6", user: "farm.rojas", pw: "Farm2026*", nombre: "Esteban Rojas", rol: "farmacia", cargo: "Químico Farmacéutico", regFarm: "QF-99321", ini: "ER", email: "esteban.rojas@saluddigital.com" },
     { id: "u7", user: "fact.vargas", pw: "Fact2026*", nombre: "Paola Vargas", rol: "facturacion", cargo: "Facturación y Cartera Hospitalaria", ini: "PV", email: "paola.vargas@saluddigital.com" },
-    { id: "u8", user: "gerencia", pw: "Gerencia2026*", nombre: "Dra. Mariana Salazar", rol: "gerencia", cargo: "Dirección Médica y Ejecutiva", ini: "MS", email: "mariana.salazar@saluddigital.com" },
-    { id: "u9", user: "paciente.maria", pw: "Paciente2026*", nombre: "María Fernanda López", rol: "paciente", cargo: "Paciente registrado", pacId: "SD-10482", ini: "ML", email: "mflopez@correo.com" }
+    { id: "u8", user: "gerencia", pw: "Gerencia2026*", nombre: "Dra. Mariana Salazar", rol: "gerencia", cargo: "Dirección Médica y Ejecutiva", ini: "MS", email: "mariana.salazar@saluddigital.com" }
   ],
 
   doctors: [
@@ -49,7 +50,7 @@ const initialData = {
       contactoEmergencia: { nombre: "Carlos López (Hermano)", tel: "311 220 9940" },
       medico: "Dr. Andrés Martínez",
       estado: "En atención",
-      consentimientoHabeasData: true,
+      consentimientoDatos: true,
       fechaConsentimiento: "2026-01-10T09:00:00Z",
       alergias: ["Penicilina", "AINES"],
       antec: ["Asma leve (2018)", "Rinitis estacional"],
@@ -86,7 +87,7 @@ const initialData = {
       contactoEmergencia: { nombre: "Carmen Ruiz (Esposa)", tel: "301 555 0468" },
       medico: "Dr. Andrés Martínez",
       estado: "Activo",
-      consentimientoHabeasData: true,
+      consentimientoDatos: true,
       fechaConsentimiento: "2026-02-14T10:30:00Z",
       alergias: [],
       antec: ["Hipertensión arterial (2015)", "Dislipidemia"],
@@ -122,7 +123,7 @@ const initialData = {
       contactoEmergencia: { nombre: "Mauricio Silva (Cónyuge)", tel: "315 777 4422" },
       medico: "Dra. Laura Gómez",
       estado: "Pendiente",
-      consentimientoHabeasData: true,
+      consentimientoDatos: true,
       fechaConsentimiento: "2026-03-01T14:10:00Z",
       alergias: ["Mariscos", "Sulfas"],
       antec: ["Hipotiroidismo primario (2020)"],
@@ -158,7 +159,7 @@ const initialData = {
       contactoEmergencia: { nombre: "Andrea Montoya (Hija)", tel: "320 555 0119" },
       medico: "Dra. Laura Gómez",
       estado: "Activo",
-      consentimientoHabeasData: true,
+      consentimientoDatos: true,
       fechaConsentimiento: "2026-01-22T08:15:00Z",
       alergias: ["Sulfonamidas"],
       antec: ["Diabetes Mellitus Tipo 2 (2010)", "Nefropatía diabética incipiente"],
@@ -422,7 +423,7 @@ const initialData = {
     }
   ],
 
-  // Audit Log conforming to Ley 1581 de 2012 (Habeas Data) & Clinical Safety
+  // Bitácora de auditoría: accesos, cambios y eventos de seguridad
   auditLogs: [
     { id: "aud-1", timestamp: "2026-10-07T08:00:12Z", usuario: "admin.pena", rol: "admin", accion: "LOGIN", detalle: "Inicio de sesión exitoso desde consola de recepción", ip: "192.168.10.15", pacienteId: null },
     { id: "aud-2", timestamp: "2026-10-07T08:02:45Z", usuario: "admin.pena", rol: "admin", accion: "CONSULTA_AGENDA", detalle: "Visualización de agenda general del día", ip: "192.168.10.15", pacienteId: null },
@@ -434,7 +435,27 @@ const initialData = {
   ],
 
   // Emergency Break-Glass records
-  emergencyAccesses: []
+  emergencyAccesses: [],
+
+  // Órdenes de interconsulta y remisión a especialistas
+  referrals: [
+    {
+      id: "rem-101",
+      pacId: "SD-10482",
+      pacNombre: "María Fernanda López",
+      pacDoc: "CC 1.032.458.771",
+      solicitante: "Dr. Andrés Martínez",
+      especialidadRequerida: "Neumología",
+      especialistaSugerido: "Dr. Julián Restrepo",
+      prioridad: "Prioritaria",
+      motivo: "Evaluación por asma persistente no controlada con broncodilatador habitual",
+      resumenClinico: "Paciente de 34 años con antecedentes de asma y rinitis alérgica. Presenta crisis repetitivas en último mes. Requiere espirometría y ajuste terapéutico.",
+      fecha: "2026-10-10",
+      est: "Pendiente",
+      fechaAtencion: null,
+      conceptoEspecialista: null
+    }
+  ]
 };
 
 class Store {
@@ -449,16 +470,38 @@ class Store {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
         this.data = JSON.parse(raw);
       } else {
-        this.save();
+        this.data = initialData;
       }
     } catch (e) {
-      console.warn("Could not load db.json, using initial data", e);
+      console.warn("No se pudo leer la base de datos; se usan datos iniciales", e.message);
       this.data = initialData;
     }
+    this.migrate();
+    this.save();
+  }
+
+  // Migra datos antiguos: cifra contraseñas en texto plano, asegura perfiles y colecciones
+  migrate() {
+    this.data.users = (this.data.users || []).filter(u => u.rol !== 'paciente');
+    this.data.users.forEach(u => {
+      if (u.user === 'dra.gomez' || u.user === 'dr.restrepo') u.rol = 'especialista';
+      if (u.pw && !isHashed(u.pw)) u.pw = hashPassword(u.pw);
+      if (u.pw === undefined) u.pw = hashPassword(require('crypto').randomBytes(16).toString('hex'));
+    });
+    this.data.referrals = this.data.referrals || initialData.referrals || [];
+    this.data.patients.forEach(p => {
+      if (p.consentimientoHabeasData !== undefined && p.consentimientoDatos === undefined) {
+        p.consentimientoDatos = p.consentimientoHabeasData;
+      }
+      delete p.consentimientoHabeasData;
+    });
+    this.data.labOrders.forEach(o => { if (o.solicitadoEn === undefined) o.solicitadoEn = null; });
+    this.data.emergencyAccesses = this.data.emergencyAccesses || [];
   }
 
   save() {
     try {
+      fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
       fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (e) {
       console.error("Error saving db.json", e);
@@ -467,7 +510,7 @@ class Store {
 
   logAudit({ usuario, rol, accion, detalle, ip = "127.0.0.1", pacienteId = null }) {
     const entry = {
-      id: "aud-" + (this.data.auditLogs.length + 1),
+      id: "aud-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       timestamp: new Date().toISOString(),
       usuario,
       rol,
